@@ -1,19 +1,22 @@
-import 'dart:ffi';
+
 
 import 'package:flutter/material.dart';
 
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'util.dart' as util;
 
 class Receipts extends StatelessWidget {
-  final int userId;
 
-  Receipts({Key key, this.userId}) : super(key: key);
+  Receipts({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    // ignore: missing_return
+    return WillPopScope(onWillPop: () {
+      Navigator.of(context).pop(false);
+    }, child: MaterialApp(
       title: 'Receipts',
       theme: ThemeData(
         // This is the theme of your application.
@@ -28,42 +31,43 @@ class Receipts extends StatelessWidget {
         primarySwatch: Colors.green,
       ),
       home: ReceiptsPage(
-        userId: this.userId,
       ),
-    );
+    ),);
   }
 }
 
 class ReceiptsPage extends StatefulWidget {
-  ReceiptsPage({this.userId}) : super();
-
-  final int userId;
-
-
-  final String _host = "192.168.1.221";
-  //final String _host = "web.pi";
-  final int _port = 8000;
+  ReceiptsPage() : super();
 
   @override
   _ReceiptsPageState createState() => _ReceiptsPageState();
 }
 
 class _ReceiptsPageState extends State<ReceiptsPage> {
+
+  // todo: this is disgusting get it out
+  Map<int, String> usersToPopulate = {
+  8: "alex",
+  9: "connor",
+  10: "sac"
+  }; // sets values to default us
+
+
   // variables for new receipt
   double amount;
   int receiptTypeID = 1; // 1 is standard bill
   DateTime purchaseDate = DateTime.now();
+
   String sPurchaseDate = DateTime.now().toString();
   String createdDate = DateTime.now().toString();
   String updatedDate = DateTime.now().toString();
-  String description;
 
+  String description;
   HttpClient _httpClient = new HttpClient();
   String _err = "";
   String _usersDisplay = "";
-  String _userOwnerDisplay = "";
 
-  Map<int, String> usersToPopulate = new Map<int, String>();
+  String _userOwnerDisplay = "";
 
   List<int> usersForReceiptsUsers = new List<int>();
   int userPaying;
@@ -81,7 +85,7 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
         context: context,
         initialDate: purchaseDate,
         firstDate: DateTime(2015, 8),
-        lastDate: DateTime(2101));
+        lastDate: DateTime(9999));
     if (picked != null && picked != purchaseDate)
       setState(() {
         purchaseDate = picked;
@@ -102,9 +106,9 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
       'Amount': amount,
       'ReceiptTypeID': receiptTypeID,
       'PurchaseDate': sPurchaseDate,
-      'CreatedBy': widget.userId,
+      'CreatedBy': util.userId,
       'CreatedDate': createdDate,
-      'UpdatedBy': widget.userId,
+      'UpdatedBy': util.userId,
       'UpdatedDate': updatedDate,
       'Description': description,
       'UserIdsCommaSeparated': _getUserIdsCommaSeparatedList()
@@ -115,7 +119,7 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
     List<int> listBytes = utf8.encode(sRequestData);
 
     HttpClientRequest request = await _httpClient.post(
-        widget._host, widget._port, "/mobile/receipts/create");
+        util.host, util.port, "/mobile/receipts/create");
 
     request.headers.set('Content-Length', listBytes.length.toString());
     request.add(listBytes);
@@ -179,16 +183,22 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
   }
 
 
+//
+//  Future<bool> _onBackPressed() {
+//    Navigator.of(context).pop();
+//    return
+//  };
+
   @override
   Widget build(BuildContext context) {
-    usersToPopulate = {
-      8: "alex",
-      9: "connor",
-      10: "sac"
-    }; // sets values to default us
 
-    return Scaffold(
+    return WillPopScope(
+//        onWillPop: _onBackPressed,
+    // ignore: missing_return
+    onWillPop: () {Navigator.of(context).pop(false);},
+    child: new Scaffold(
       backgroundColor: Colors.white,
+
       body: Center(
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -319,8 +329,10 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _submitAttempt,
         tooltip: 'Submit',
+
         child: Icon(Icons.add),
       ),
-    );
+
+    ));
   }
 }

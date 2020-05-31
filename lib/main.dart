@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:suma/Receipts.dart';
 import './login.dart';
+import './Landing.dart';
 
 void main() => runApp(MyApp());
 
@@ -12,10 +15,22 @@ https://medium.com/flutter-community/flutter-bloc-pattern-for-dummies-like-me-c2
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Signin',
+//      initialRoute: '/',
+      routes: {
+        // When navigating to the "/" route, build the FirstScreen widget.
+//        '/': (context) => LoginPage(),
+        // When navigating to the "/second" route, build the SecondScreen widget.
+        '/Landing': (context) => Landing(),
+
+
+      },
+      home: LoginPage(),
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -30,7 +45,7 @@ class MyApp extends StatelessWidget {
 
 
       ),
-      home: LoginPage(),
+
 
     );
   }

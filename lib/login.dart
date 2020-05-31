@@ -1,18 +1,17 @@
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 
-import './Receipts.dart';
+import './Landing.dart';
+import 'util.dart' as util;
 
 class LoginPage extends StatefulWidget {
   LoginPage({Key key}) : super(key: key);
-
-  //final String _host = "http://web.pi";
-
-  final String _host = "192.168.1.221";
-  final int _port = 8000;
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -22,10 +21,35 @@ class _LoginPageState extends State<LoginPage> {
   HttpClient _httpClient = new HttpClient();
 
   bool _loginSuccessful = false;
+  bool _initialState = true;
   String _username;
   String _password;
 
   String _err = "";
+
+
+  _LoginPageState() : super() {
+
+
+
+    //Duration second = new Duration(seconds: 1);
+    //sleep(second );
+
+  }
+
+  void checkUserId() async {
+    final storage = new FlutterSecureStorage();
+    Map<String, String> secureStore = await storage.readAll();
+
+    if (secureStore.containsKey('username'))
+      _username = secureStore['username'];
+
+    if (secureStore.containsKey('password'))
+      _password = secureStore['password'];
+
+    if (_username != "" && _password != "")
+      this._loginAttempt();
+  }
 
   Future<HttpClientResponse> _doLogin() async {
     Map<String, String> jsonMap = {
@@ -38,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
     List<int> listBytes = utf8.encode(sRequestData);
 
     HttpClientRequest request = await _httpClient.post(
-        widget._host, widget._port, "/mobile/user/login");
+        util.host, util.port, "/mobile/user/login");
 
     request.headers.set('Content-Length', listBytes.length.toString());
     request.add(listBytes);
@@ -51,19 +75,31 @@ class _LoginPageState extends State<LoginPage> {
     String sResponse = await response.transform(utf8.decoder).join();
     Map mResponse = jsonDecode(sResponse) as Map;
 
-    int userId;
+
     _loginSuccessful = mResponse["status"] == 0 ? false : true;
     if (_loginSuccessful) {
       setState(() {
         _err = "";
       });
-      userId = mResponse["status"];
-      Navigator.push(
-          context,
-          new MaterialPageRoute(
-              builder: (context) => new Receipts(
-                    userId: userId,
-                  )));
+
+      util.userId = mResponse["status"];
+
+      // store key value to phone
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setInt('userId', util.userId);
+
+      final storage = new FlutterSecureStorage();
+
+      await storage.write(key: 'username', value: _username);
+
+      await storage.write(key: 'password', value: _password);
+
+      Navigator.pushNamed(context, "/Landing");
+//      Navigator.of(context).push(
+//          new MaterialPageRoute(
+//              builder: (context) => new Landing(
+//
+//              )));
     }
     else {
       setState(() {
@@ -76,7 +112,18 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+
+    if (this._initialState) {
+      this.checkUserId();
+      this._initialState = !this._initialState;
+    }
+
+    return
+      WillPopScope(
+        // ignore: missing_return
+//        onWillPop: () {Navigator.of(context).pop();},
+      child:
+      new Scaffold(
       backgroundColor: Colors.white,
       body: Center(
         child: Column(
@@ -134,6 +181,8 @@ class _LoginPageState extends State<LoginPage> {
         tooltip: 'Login',
         child: Icon(Icons.attach_money),
       ),
-    );
+    ),
+    onWillPop: () { Navigator.of(context).pop();},
+      );
   }
 }
